@@ -1117,3 +1117,5 @@ p <- ggplot(dist_data_climate, aes(x = value, fill = climate_name)) +
     legend.title = element_text(size = 11)
   )
 save_plot(p, "all_variables_distribution_by_climate.png", w = 14, h = 12)
+
+# End of script ----
