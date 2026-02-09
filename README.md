@@ -29,8 +29,7 @@ R packages: `tidyverse`, `janitor`, `fs`, `scales`, `viridis`, `ggtern`, `GGally
 Everything gets written to `outputs/`. Not tracked in git — re-run the scripts to regenerate.
 
 - **`site_data_combined.csv`** — main dataset, one row per site with all environmental variables joined together
-- **`site_landuse_long.csv`** — land use proportions in long format (for stacked bar charts)
-- **`landuse_annual.csv`** — cleaned annual land use data before summarizing to site level
+- **`landuse_annual.csv`** — cleaned annual land use data (one class per site per year)
 - A bunch of PNGs: boxplots, ternary soil diagrams, distribution plots, correlation matrices, etc.
 
 ## Notes

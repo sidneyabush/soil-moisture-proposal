@@ -1,7 +1,7 @@
-# ============================================================
+# -----------------------------------------------------------
 # 01_data_prep.R
 # Reads, cleans, and combines all data sources into one CSV
-# ============================================================
+# -----------------------------------------------------------
 
 suppressPackageStartupMessages({
   library(tidyverse)
@@ -27,13 +27,9 @@ skin_temp_path <- file.path(gdrive_dir, "skin_temp_2020.csv")
 snow_cover_path <- file.path(gdrive_dir, "snow_cover_2020.csv")
 total_evap_path <- file.path(gdrive_dir, "total_evap_sum_2020.csv")
 
-# ============================================================
-# Read and clean climate data
-# ============================================================
-climate_raw <- read_csv(climate_path, show_col_types = FALSE) %>%
-  clean_names()
-
-climate <- climate_raw %>%
+# ---- Climate ----
+climate <- read_csv(climate_path, show_col_types = FALSE) %>%
+  clean_names() %>%
   transmute(
     plot_id = plot_id_fullname,
     climate_zone = climate_z,
@@ -42,22 +38,17 @@ climate <- climate_raw %>%
   filter(!is.na(plot_id), !is.na(climate_name)) %>%
   distinct()
 
-# ============================================================
-# Read and clean land use data
-# ============================================================
-landuse_raw <- read_csv(landuse_path, show_col_types = FALSE) %>%
-  clean_names()
-
-landuse <- landuse_raw %>%
+# ---- Land use (one class per site per year, 2000-2022) ----
+landuse <- read_csv(landuse_path, show_col_types = FALSE) %>%
+  clean_names() %>%
   transmute(
     plot_id = plot_id_fu,
     year = as.integer(year),
-    land_class = as.character(land_class),
-    area_m2 = as.numeric(area_m2)
+    land_class = as.character(land_class)
   ) %>%
   filter(!is.na(plot_id), !is.na(year), year >= 2000, year <= 2022)
 
-# Clean land-use names
+# Clean up class names and consolidate subtypes
 landuse <- landuse %>%
   mutate(
     land_class = land_class %>%
@@ -66,7 +57,6 @@ landuse <- landuse %>%
       str_to_title()
   )
 
-# Consolidate forest and cropland types into major categories
 landuse <- landuse %>%
   mutate(
     land_class = case_when(
@@ -76,19 +66,7 @@ landuse <- landuse %>%
     )
   )
 
-# Compute within-plot yearly proportions
-landuse <- landuse %>%
-  group_by(plot_id, year) %>%
-  mutate(
-    total_area_m2 = sum(area_m2, na.rm = TRUE),
-    prop = ifelse(total_area_m2 > 0, area_m2 / total_area_m2, NA_real_)
-  ) %>%
-  ungroup() %>%
-  filter(is.finite(prop), prop >= 0, prop <= 1)
-
-# ============================================================
-# Read and clean ecoregions data
-# ============================================================
+# ---- Ecoregions ----
 ecoregions <- read_csv(ecoregions_path, show_col_types = FALSE) %>%
   clean_names() %>%
   transmute(
@@ -103,9 +81,7 @@ ecoregions <- read_csv(ecoregions_path, show_col_types = FALSE) %>%
   filter(!is.na(plot_id)) %>%
   distinct(plot_id, .keep_all = TRUE)
 
-# ============================================================
-# Read and clean soil data
-# ============================================================
+# ---- Soil texture ----
 sand <- read_csv(sand_path, show_col_types = FALSE) %>%
   clean_names() %>%
   transmute(
@@ -124,17 +100,14 @@ clay <- read_csv(clay_path, show_col_types = FALSE) %>%
   filter(!is.na(plot_id)) %>%
   distinct(plot_id, .keep_all = TRUE)
 
-# Combine soil data and calculate silt
 soil <- sand %>%
   full_join(clay, by = "plot_id") %>%
   mutate(silt_pct = 100 - sand_pct - clay_pct) %>%
   mutate(silt_pct = ifelse(silt_pct < 0, NA_real_, silt_pct))
 
-# ============================================================
-# Helper functions to process wide time-series data
-# ============================================================
-
-# Pivot wide to long, keeping "Nan" as a valid site name
+# ---- ERA5 helpers ----
+# Raw ERA5 data is wide (dates x sites), these pivot and summarize it.
+# names_transform prevents a site literally called "Nan" from becoming NA
 pivot_to_long <- function(file_path) {
   df <- read_csv(file_path, show_col_types = FALSE)
 
@@ -143,7 +116,7 @@ pivot_to_long <- function(file_path) {
       cols = -dates,
       names_to = "plot_id",
       values_to = "value",
-      names_transform = list(plot_id = as.character)  # prevent "Nan" -> NA
+      names_transform = list(plot_id = as.character) # prevent "Nan" -> NA
     ) %>%
     filter(!is.na(value), value != "") %>%
     mutate(value = as.numeric(value)) %>%
@@ -152,7 +125,6 @@ pivot_to_long <- function(file_path) {
   return(df_long)
 }
 
-# For STATE variables: MEAN of daily values
 process_timeseries_mean <- function(file_path, var_name) {
   df_long <- pivot_to_long(file_path)
 
@@ -167,7 +139,6 @@ process_timeseries_mean <- function(file_path, var_name) {
   return(df_summary)
 }
 
-# For FLUX variables: SUM of daily values
 process_timeseries_sum <- function(file_path, var_name) {
   df_long <- pivot_to_long(file_path)
 
@@ -181,43 +152,22 @@ process_timeseries_sum <- function(file_path, var_name) {
   return(df_summary)
 }
 
-# ============================================================
-# Process time-series data (ERA5-Land Daily Aggregates, 2020)
-# ============================================================
-# All variables are from ECMWF/ERA5_LAND/DAILY_AGGR via Google Earth Engine
-# Raw data: 366 daily values per site for 2020
-#
-# STATE variables (MEAN): skin_temp, snow_cover, LAI
-# FLUX variables (SUM): total_evap
-# ============================================================
-
-# STATE variables: mean of daily values
+# ---- Process ERA5 time series (366 daily values per site, 2020) ----
+# State vars get averaged, flux vars get summed
 lai_high <- process_timeseries_mean(lai_high_path, "lai_high_veg")
 lai_low <- process_timeseries_mean(lai_low_path, "lai_low_veg")
 skin_temp <- process_timeseries_mean(skin_temp_path, "skin_temp")
 snow_cover <- process_timeseries_mean(snow_cover_path, "snow_cover")
 
-# FLUX variable: sum of daily values
 total_evap <- process_timeseries_sum(total_evap_path, "total_evap")
 
-# ============================================================
-# Convert total evaporation units
-# ============================================================
-# ERA5-Land total_evaporation_sum: daily values in meters (negative = evap)
-# After summing: total is in meters/year (negative)
-# Convert: multiply by -1 (flip sign) and 1000 (m to mm)
+# ERA5 reports evap as negative meters — flip sign and convert to mm/yr
 total_evap <- total_evap %>%
   mutate(total_evap_sum = total_evap_sum * -1 * 1000)
 
-# ============================================================
-# Create site-level summary (combining all environmental variables)
-# ============================================================
-# Get unique sites from land use data
-sites <- landuse %>%
-  distinct(plot_id)
-
-# Join all environmental variables
-site_env <- sites %>%
+# ---- Join everything together ----
+site_env <- landuse %>%
+  distinct(plot_id) %>%
   left_join(ecoregions, by = "plot_id") %>%
   left_join(climate, by = "plot_id") %>%
   left_join(soil, by = "plot_id") %>%
@@ -227,85 +177,19 @@ site_env <- sites %>%
   left_join(snow_cover, by = "plot_id") %>%
   left_join(total_evap, by = "plot_id")
 
-# ============================================================
-# Create site-level land use signature (mean proportion 2000-2022)
-# FIXED: Include zeros for years when a land class is absent
-# ============================================================
-
-# Get all unique combinations we need
-all_years <- 2000:2022
-all_land_classes <- unique(landuse$land_class)
-all_sites <- unique(landuse$plot_id)
-
-# Create complete grid of site x year x land_class
-complete_grid <- expand_grid(
-  plot_id = all_sites,
-  year = all_years,
-  land_class = all_land_classes
-)
-
-# Join with actual data and fill missing with 0
-landuse_complete <- complete_grid %>%
-  left_join(
-    landuse %>% select(plot_id, year, land_class, prop),
-    by = c("plot_id", "year", "land_class")
-  ) %>%
-  mutate(prop = replace_na(prop, 0))
-
-# Now calculate true mean proportion across ALL years
-site_landuse <- landuse_complete %>%
-  group_by(plot_id, land_class) %>%
-  summarise(
-    mean_prop = mean(prop, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  filter(mean_prop > 0) # Only keep classes that appear at least once
-
-# ============================================================
-# Calculate dominant (modal) land class per site
-# ============================================================
-# Count how many years each land class appears per site
+# Modal land class per site across 2000-2022
 class_counts <- landuse %>%
   count(plot_id, land_class, name = "n_years")
 
-# Pick the modal class (most frequent) per site
 site_dominant_lc <- class_counts %>%
   group_by(plot_id) %>%
   slice_max(n_years, n = 1, with_ties = FALSE) %>%
   ungroup() %>%
   select(plot_id, dominant_lc = land_class)
 
-# Pivot to wide format for site-level land use
-site_landuse_wide <- site_landuse %>%
-  mutate(
-    land_class = paste0(
-      "lc_",
-      str_to_lower(str_replace_all(land_class, " ", "_"))
-    )
-  ) %>%
-  pivot_wider(
-    names_from = land_class,
-    values_from = mean_prop,
-    values_fill = 0
-  ) %>%
+site_data <- site_env %>%
   left_join(site_dominant_lc, by = "plot_id")
 
-# ============================================================
-# Combine everything into final site-level dataset
-# ============================================================
-site_data <- site_env %>%
-  left_join(site_landuse_wide, by = "plot_id")
-
-# ============================================================
-# Also create a long-format dataset for land use by site
-# (useful for stacked bar plots)
-# ============================================================
-site_landuse_long <- site_landuse %>%
-  left_join(site_env, by = "plot_id")
-
-# ============================================================
-# Write outputs
-# ============================================================
+# ---- Write outputs ----
 write_csv(site_data, file.path(out_dir, "site_data_combined.csv"))
-write_csv(site_landuse_long, file.path(out_dir, "site_landuse_long.csv"))
 write_csv(landuse, file.path(out_dir, "landuse_annual.csv"))
