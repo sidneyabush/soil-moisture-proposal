@@ -1,6 +1,6 @@
 # Soil Moisture Proposal — Preliminary Figures
 
-Exploratory data analysis and site characterization for NSF proposal.
+Exploratory data analysis and site characterization for NSF proposal. 
 
 ## Data Sources
 
@@ -10,7 +10,7 @@ Exploratory data analysis and site characterization for NSF proposal.
 - **Köppen climate classification** — climate zones per site
 - **WWF Ecoregions** — biome, realm, and ecoregion per site
 
-Raw data lives on Box (`Hydrology_Lab/Soils_Proposal/data/`) for now - will likely be migrated to google drive for collaborating/ sharing later on.
+Raw data lives on Box (`Hydrology_Lab/Soils_Proposal/data/`) for now - will likely be moved to google drive for collaborating later.
 
 ## Scripts
 
@@ -20,17 +20,6 @@ Run these in order:
 
 2. **`02_plotting.R`** — reads the prepped data and generates a bunch of exploratory plots: boxplots by biome/climate/land cover, ternary soil texture diagrams, distribution plots, correlation matrices, etc. Also saves to `outputs/`.
 
-## Requirements
-
-R packages: `tidyverse`, `janitor`, `fs`, `scales`, `viridis`, `ggtern`, `GGally`
-
-## Outputs
-
-Everything gets written to `outputs/`. Not tracked in git — re-run the scripts to regenerate.
-
-- **`site_data_combined.csv`** — main dataset, one row per site with all environmental variables joined together
-- **`landuse_annual.csv`** — cleaned annual land use data (one class per site per year)
-- A bunch of PNGs: boxplots, ternary soil diagrams, distribution plots, correlation matrices, etc.
 
 ## Notes
 
