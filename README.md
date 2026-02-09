@@ -20,19 +20,6 @@ Run these in order:
 
 2. **`02_plotting.R`** — reads the prepped data and generates a bunch of exploratory plots: boxplots by biome/climate/land cover, ternary soil texture diagrams, distribution plots, correlation matrices, etc. Also saves to `outputs/`.
 
-## Requirements
-
-R packages: `tidyverse`, `janitor`, `fs`, `scales`, `viridis`, `ggtern`, `GGally`
-
-## Outputs
-
-Everything gets written to `outputs/`. Not tracked in git — re-run the scripts to regenerate.
-
-- **`site_data_combined.csv`** — main dataset, one row per site with all environmental variables joined together
-- **`site_landuse_long.csv`** — land use proportions in long format (for stacked bar charts)
-- **`landuse_annual.csv`** — cleaned annual land use data before summarizing to site level
-- A bunch of PNGs: boxplots, ternary soil diagrams, distribution plots, correlation matrices, etc.
-
 ## Notes
 
 - All ERA5 variables are from 2020 only (single year due to time limits in pulling data from GEE, more years will be added later)
