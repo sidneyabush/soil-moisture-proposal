@@ -10,7 +10,7 @@ Exploratory data analysis and site characterization for NSF proposal.
 - **Köppen climate classification** — climate zones per site
 - **WWF Ecoregions** — biome, realm, and ecoregion per site
 
-Raw data lives on Box (`Hydrology_Lab/Soils_Proposal/data/`) and isn't tracked in this repo.
+Raw data lives on Box (`Hydrology_Lab/Soils_Proposal/data/`) for now - will likely be migrated to google drive for collaborating/ sharing later on.
 
 ## Scripts
 
