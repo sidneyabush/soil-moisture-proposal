@@ -151,7 +151,7 @@ var_order <- c(
   "Mean Annual LAI High Veg",
   "Mean Annual LAI Low Veg",
   "Mean Annual Snow Cover (%)",
-  "Annual Total Evap (mm/yr)"
+  "Annual Evap Loss (mm/yr)"
 )
 
 # ============================================================
@@ -268,13 +268,29 @@ cont_vars <- list(
   list(var = "sand_pct", label = "Sand (%)", name = "sand"),
   list(var = "clay_pct", label = "Clay (%)", name = "clay"),
   list(var = "silt_pct", label = "Silt (%)", name = "silt"),
-  list(var = "skin_temp_mean", label = "Mean Annual Skin Temp (K)", name = "skin_temp"),
-  list(var = "lai_high_veg_mean", label = "Mean Annual LAI High Veg", name = "lai_high"),
-  list(var = "lai_low_veg_mean", label = "Mean Annual LAI Low Veg", name = "lai_low"),
-  list(var = "snow_cover_mean", label = "Mean Annual Snow Cover (%)", name = "snow_cover"),
+  list(
+    var = "skin_temp_mean",
+    label = "Mean Annual Skin Temp (K)",
+    name = "skin_temp"
+  ),
+  list(
+    var = "lai_high_veg_mean",
+    label = "Mean Annual LAI High Veg",
+    name = "lai_high"
+  ),
+  list(
+    var = "lai_low_veg_mean",
+    label = "Mean Annual LAI Low Veg",
+    name = "lai_low"
+  ),
+  list(
+    var = "snow_cover_mean",
+    label = "Mean Annual Snow Cover (%)",
+    name = "snow_cover"
+  ),
   list(
     var = "total_evap_sum",
-    label = "Annual Total Evap (mm/yr)",
+    label = "Annual Evap Loss (mm/yr)",
     name = "total_evap"
   )
 )
@@ -288,7 +304,7 @@ label_var <- function(x) {
     x == "lai_high_veg_mean" ~ "Mean Annual LAI High Veg",
     x == "lai_low_veg_mean" ~ "Mean Annual LAI Low Veg",
     x == "snow_cover_mean" ~ "Mean Annual Snow Cover (%)",
-    x == "total_evap_sum" ~ "Annual Total Evap (mm/yr)",
+    x == "total_evap_sum" ~ "Annual Evap Loss (mm/yr)",
     TRUE ~ x
   )
 }
@@ -454,14 +470,26 @@ for (cv in cont_vars) {
 # ============================================================
 
 lai_long <- site_data %>%
-  select(plot_id, biome_plot, climate_name, lai_high_veg_mean, lai_low_veg_mean) %>%
+  select(
+    plot_id,
+    biome_plot,
+    climate_name,
+    lai_high_veg_mean,
+    lai_low_veg_mean
+  ) %>%
   pivot_longer(
     cols = c(lai_high_veg_mean, lai_low_veg_mean),
     names_to = "lai_type",
     values_to = "lai"
   ) %>%
   filter(!is.na(lai)) %>%
-  mutate(lai_type = ifelse(lai_type == "lai_high_veg_mean", "LAI High Veg", "LAI Low Veg"))
+  mutate(
+    lai_type = ifelse(
+      lai_type == "lai_high_veg_mean",
+      "LAI High Veg",
+      "LAI Low Veg"
+    )
+  )
 
 # By biome (grouped)
 p <- lai_long %>%
@@ -502,7 +530,13 @@ lai_lc_long <- site_data %>%
     values_to = "lai"
   ) %>%
   filter(!is.na(lai)) %>%
-  mutate(lai_type = ifelse(lai_type == "lai_high_veg_mean", "LAI High Veg", "LAI Low Veg"))
+  mutate(
+    lai_type = ifelse(
+      lai_type == "lai_high_veg_mean",
+      "LAI High Veg",
+      "LAI Low Veg"
+    )
+  )
 
 p <- ggplot(lai_lc_long, aes(x = dominant_lc_plot, y = lai, fill = lai_type)) +
   geom_boxplot(outlier.size = 0.6, position = position_dodge(0.8)) +
@@ -578,12 +612,24 @@ save_plot(p, "ternary_soil_by_lulc.png", w = 11, h = 9)
 
 # By continuous variables
 ternary_cont <- list(
-  list(var = "skin_temp_mean", label = "Mean Annual Skin Temp (K)", name = "skin_temp"),
-  list(var = "lai_high_veg_mean", label = "Mean Annual LAI High Veg", name = "lai_high"),
-  list(var = "snow_cover_mean", label = "Mean Annual Snow Cover (%)", name = "snow_cover"),
+  list(
+    var = "skin_temp_mean",
+    label = "Mean Annual Skin Temp (K)",
+    name = "skin_temp"
+  ),
+  list(
+    var = "lai_high_veg_mean",
+    label = "Mean Annual LAI High Veg",
+    name = "lai_high"
+  ),
+  list(
+    var = "snow_cover_mean",
+    label = "Mean Annual Snow Cover (%)",
+    name = "snow_cover"
+  ),
   list(
     var = "total_evap_sum",
-    label = "Annual Total Evap (mm/yr)",
+    label = "Annual Evap Loss (mm/yr)",
     name = "total_evap"
   )
 )
@@ -674,7 +720,7 @@ names(cor_data) <- c(
   "LAI High Veg",
   "LAI Low Veg",
   "Snow Cover",
-  "Total Evap"
+  "Evap Loss"
 )
 
 cor_matrix <- cor(cor_data, use = "complete.obs")
@@ -751,7 +797,7 @@ if (requireNamespace("GGally", quietly = TRUE)) {
     "LAI High Veg",
     "LAI Low Veg",
     "Snow Cover",
-    "Total Evap",
+    "Evap Loss",
     "Biome",
     "Climate",
     "Dominant LC"
@@ -830,7 +876,10 @@ if (requireNamespace("GGally", quietly = TRUE)) {
     filter(n > 2) %>%
     slice_max(n, n = 5, with_ties = FALSE)
   site_lc <- site_data_cont %>%
-    filter(!is.na(`Dominant LC`), `Dominant LC` %in% lc_counts$`Dominant LC`) %>%
+    filter(
+      !is.na(`Dominant LC`),
+      `Dominant LC` %in% lc_counts$`Dominant LC`
+    ) %>%
     mutate(`Dominant LC` = droplevels(`Dominant LC`))
 
   # Build breaks from what's actually present (after threshold filter)
